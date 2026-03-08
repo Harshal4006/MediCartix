@@ -32,7 +32,7 @@ const Payment = () => {
   const handleCancel = async () => {
 
     await axios.post(
-      ""https://medicartix-backend.onrender.com/api/order/verify"",
+      "https://medicartix-backend.onrender.com/api/order/verify",
       {
         orderId,
         success:false
