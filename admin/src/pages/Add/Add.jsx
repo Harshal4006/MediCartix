@@ -7,7 +7,7 @@ import { FiUploadCloud } from "react-icons/fi";
 
 const Add = () => {
 
-  const url = "http://localhost:4000";
+  const url = "https://medicartix-backend.onrender.com";
 
   const [image, setImage] = useState(false);
   const [loading, setLoading] = useState(false);
