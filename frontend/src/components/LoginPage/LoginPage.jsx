@@ -7,7 +7,7 @@ import { StoreContext } from "../../context/StoreContext";
 
 const LoginPage = ({ setShowLogin }) => {
 
-  const url = "http://localhost:4000";
+  const url = "https://medicartix-backend.onrender.com";
 
   const { setToken } = useContext(StoreContext);
 
