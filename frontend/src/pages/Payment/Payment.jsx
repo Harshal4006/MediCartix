@@ -15,7 +15,7 @@ const Payment = () => {
   const handleSuccess = async () => {
 
     const response = await axios.post(
-      ""https://medicartix-backend.onrender.com/api/order/verify"",
+      "https://medicartix-backend.onrender.com/api/order/verify",
       {
         orderId,
         success: true
