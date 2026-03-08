@@ -65,7 +65,7 @@ const Cart = () => {
                   <div className="product-info">
 
                     <img
-                      src={`http://localhost:4000/images/${item.image}`}
+                      src={`https://medicartix-backend.onrender.com/images/${item.image}`}
                       alt={item.name}
                     />
 
