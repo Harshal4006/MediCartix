@@ -15,7 +15,7 @@ const MedicineItem = ({ id, name, price, description, image }) => {
 
         <img
           className="medicin-item-image"
-          src={`http://localhost:4000/images/${image}`}
+          src={`https://medicartix-backend.onrender.com/images/${image}`}
           alt={name}
         />
 
