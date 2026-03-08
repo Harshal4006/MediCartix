@@ -1,0 +1,18 @@
+
+.medicin-display {
+  margin-top: clamp(17px, 3vw, 30px);
+}
+
+.medicin-display h2 {
+  font-size: clamp(20px, 3vw, 37px);
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 20px;
+}
+
+.medicin-display-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: clamp(18px, 3vw, 40px);
+  margin-top: 40px;
+}
