@@ -1,0 +1,85 @@
+.whyus {
+  width: 100%;
+  background: linear-gradient(to bottom, #f8fbff, #ffffff);
+  text-align: center;
+  margin: 0;
+  padding: clamp(40px, 5vw, 60px) 0 
+           clamp(70px, 8vw, 110px) 0;
+  margin-top: 50px;
+}
+
+.whyus-container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.whyus h2 {
+  font-size: clamp(26px, 3vw, 40px);
+  font-weight: 700;
+  margin-bottom: 18px;
+  color: #1e2a38;
+}
+
+.subtitle {
+  font-size: clamp(14px, 1.2vw, 16px);
+  color: #6c757d;
+  margin-bottom: clamp(40px, 5vw, 55px);
+  max-width: 700px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.whyus-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: clamp(20px, 3vw, 35px);
+}
+
+.whyus-card {
+  background: #ffffff;
+  padding: clamp(28px, 3vw, 40px);
+  border-radius: 20px;
+  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.06);
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.whyus-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.08);
+}
+
+.icon {
+  font-size: clamp(30px, 3vw, 40px);
+  margin-bottom: 18px;
+}
+
+.whyus-card h3 {
+  font-size: clamp(16px, 1.5vw, 20px);
+  margin-bottom: 10px;
+  color: #1e2a38;
+  font-weight: 600;
+}
+
+.whyus-card p {
+  font-size: clamp(13px, 1vw, 14px);
+  color: #555;
+  line-height: 1.6;
+}
+
+@media (max-width: 992px) {
+  .whyus-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 576px) {
+  .whyus {
+    padding: 70px 0;
+  }
+
+  .whyus-grid {
+    grid-template-columns: 1fr;
+  }
+}

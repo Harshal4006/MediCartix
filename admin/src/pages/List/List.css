@@ -1,0 +1,176 @@
+.list{
+  width:100%;
+  padding:24px;
+  box-sizing:border-box;
+}
+
+.list-title{
+  font-size:24px;
+  font-weight:600;
+  margin-bottom:20px;
+}
+
+.desktop-table{
+  background:#fff;
+  border-radius:16px;
+  overflow:hidden;
+  box-shadow:0 5px 16px rgba(0,0,0,0.05);
+}
+
+.list-table-format{
+  display:grid;
+  grid-template-columns:2.5fr 1.5fr 120px 60px;
+  align-items:center;
+  padding:18px 24px;
+  border-bottom:1px solid #f1f1f1;
+}
+
+.list-table-format.title{
+  background:#f9fafb;
+  font-weight:600;
+}
+
+.name-cell{
+  display:flex;
+  align-items:center;
+  gap:16px;
+  min-width:0;
+}
+
+.list-img{
+  width:55px;
+  height:55px;
+  object-fit:cover;
+  border-radius:10px;
+  flex-shrink:0;
+}
+
+.medicine-name{
+  font-size:15px;
+  font-weight:500;
+  word-break:break-word;
+}
+
+.delete-icon{
+  font-size:20px;
+  color:#ef4444;
+  cursor:pointer;
+  transition:0.2s;
+}
+
+.delete-icon:hover{
+  transform:scale(1.1);
+}
+
+.mobile-cards{
+  display:none;
+}
+
+.medicine-card{
+  background:#fff;
+  padding:16px;
+  border-radius:14px;
+  margin-bottom:16px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:14px;
+  box-shadow:0 4px 14px rgba(0,0,0,0.06);
+}
+
+.card-left{
+  display:flex;
+  gap:14px;
+  align-items:center;
+  flex:1;
+}
+
+.card-left img{
+  width:70px;
+  height:70px;
+  object-fit:cover;
+  border-radius:12px;
+  flex-shrink:0;
+}
+
+.medicine-info{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+
+.medicine-info h3{
+  font-size:16px;
+  margin:0;
+}
+
+.medicine-info p{
+  font-size:13px;
+  color:#6b7280;
+  margin:0;
+}
+
+.medicine-info span{
+  font-weight:600;
+  font-size:15px;
+}
+
+.card-right{
+  display:flex;
+  align-items:center;
+}
+
+
+@media(max-width:900px){
+
+  .list{
+    padding:16px;
+  }
+
+  .list-table-format{
+    grid-template-columns:2fr 1.2fr 100px 50px;
+    padding:16px;
+  }
+
+}
+
+@media(max-width:700px){
+
+  .desktop-table{
+    display:none;
+  }
+
+  .mobile-cards{
+    display:block;
+  }
+
+}
+
+@media(max-width:480px){
+
+  .list{
+    padding:12px;
+  }
+
+  .medicine-card{
+    padding:14px;
+  }
+
+  .card-left img{
+    width:60px;
+    height:60px;
+  }
+
+  .medicine-info h3{
+    font-size:15px;
+  }
+
+  .medicine-info span{
+    font-size:14px;
+  }
+
+  .delete-icon{
+    font-size:18px;
+  }
+
+}

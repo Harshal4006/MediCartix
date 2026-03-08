@@ -1,0 +1,56 @@
+.prescription-page{
+  padding:60px 20px;
+  text-align:center;
+}
+
+.prescription-page h2{
+  font-size:28px;
+  margin-bottom:10px;
+}
+
+.prescription-page p{
+  color:#666;
+  margin-bottom:30px;
+}
+
+.upload-box{
+  border:2px dashed #22c55e;
+  padding:40px;
+  border-radius:12px;
+  max-width:400px;
+  margin:auto;
+}
+
+.upload-btn{
+  background:#22c55e;
+  color:white;
+  padding:12px 25px;
+  border-radius:8px;
+  cursor:pointer;
+  font-weight:600;
+  display:inline-block;
+}
+
+.upload-btn:hover{
+  background:#16a34a;
+}
+
+.file-name{
+  margin-top:15px;
+  color:#333;
+}
+
+.submit-btn{
+  margin-top:25px;
+  padding:12px 28px;
+  background:#22c55e;
+  color:white;
+  border:none;
+  border-radius:25px;
+  font-weight:600;
+  cursor:pointer;
+}
+
+.submit-btn:hover{
+  background:#16a34a;
+}
