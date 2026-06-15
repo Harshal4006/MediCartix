@@ -1,15 +1,11 @@
 import React, { useState, useContext } from "react";
 import "./LoginPage.css";
 import cross_icon from "../../assets/images/cross_icon.png";
-import axios from "axios";
 import { toast } from "react-toastify";
 import { StoreContext } from "../../context/StoreContext";
 
 const LoginPage = ({ setShowLogin }) => {
-
-  const url = "http://localhost:4000";
-
-  const { setToken } = useContext(StoreContext);
+  const { api, setToken, setUser } = useContext(StoreContext);
 
   const [currState, setCurrState] = useState("Sign Up");
   const [loading, setLoading] = useState(false);
@@ -20,131 +16,140 @@ const LoginPage = ({ setShowLogin }) => {
     password: "",
   });
 
+  const [errors, setErrors] = useState({});
+
   const onChangeHandler = (e) => {
     setData({ ...data, [e.target.name]: e.target.value });
+    if (errors[e.target.name]) {
+      setErrors({ ...errors, [e.target.name]: "" });
+    }
+  };
+
+  const validate = () => {
+    const errs = {};
+    if (currState === "Sign Up" && !data.name.trim()) {
+      errs.name = "Name is required";
+    }
+    if (!data.email.trim()) {
+      errs.email = "Email is required";
+    } else if (!/\S+@\S+\.\S+/.test(data.email)) {
+      errs.email = "Invalid email format";
+    }
+    if (!data.password) {
+      errs.password = "Password is required";
+    } else if (data.password.length < 8) {
+      errs.password = "Password must be at least 8 characters";
+    }
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
   };
 
   const onSubmitHandler = async (e) => {
     e.preventDefault();
-
-    if (loading) return;
+    if (!validate() || loading) return;
 
     setLoading(true);
 
-    const endpoint =
-      currState === "Login"
-        ? "/api/user/login"
-        : "/api/user/register";
+    const endpoint = currState === "Login" ? "/api/user/login" : "/api/user/register";
 
     try {
-      const { data: res } = await axios.post(
-        `${url}${endpoint}`,
-        data
-      );
+      const res = await api.post(endpoint, data);
 
-      if (res.success) {
-
-        setToken(res.token);
-        localStorage.setItem("token", res.token);
+      if (res.data.success) {
+        setToken(res.data.token);
+        if (res.data.user) {
+          setUser(res.data.user);
+        }
 
         toast.success(
-          currState === "Login"
-            ? "Login Successful"
-            : "Account Created Successfully"
+          currState === "Login" ? "Welcome back!" : "Account created successfully"
         );
 
         setShowLogin(false);
-
-      } else {
-        toast.error(res.message);
       }
-
     } catch (error) {
-      toast.error(
-        error.response?.data?.message || "Server Error"
-      );
+      const message = error.response?.data?.message || "Something went wrong";
+      toast.error(message);
     }
 
     setLoading(false);
   };
 
   return (
-    <div className="login-popup">
-      <form onSubmit={onSubmitHandler} className="login-popup-container">
-
+    <div className="login-popup" onClick={() => setShowLogin(false)}>
+      <form onClick={(e) => e.stopPropagation()} onSubmit={onSubmitHandler} className="login-popup-container" role="dialog" aria-modal="true" aria-label={currState}>
         <div className="login-popup-title">
           <h2>{currState}</h2>
-          <img
-            src={cross_icon}
-            alt=""
-            onClick={() => setShowLogin(false)}
-          />
+          <img src={cross_icon} alt="Close" onClick={() => setShowLogin(false)} />
         </div>
 
         <div className="login-popup-inputs">
-
           {currState !== "Login" && (
-            <input
-              name="name"
-              value={data.name}
-              onChange={onChangeHandler}
-              type="text"
-              placeholder="Your Name"
-              required
-            />
+            <div className="input-wrapper">
+              <input
+                name="name"
+                value={data.name}
+                onChange={onChangeHandler}
+                type="text"
+                placeholder="Your Name"
+                className={errors.name ? "input-error" : ""}
+                required
+              />
+              {errors.name && <span className="field-error">{errors.name}</span>}
+            </div>
           )}
 
-          <input
-            name="email"
-            value={data.email}
-            onChange={onChangeHandler}
-            type="email"
-            placeholder="Your Email"
-            required
-          />
+          <div className="input-wrapper">
+            <input
+              name="email"
+              value={data.email}
+              onChange={onChangeHandler}
+              type="email"
+              placeholder="Your Email"
+              className={errors.email ? "input-error" : ""}
+              required
+            />
+            {errors.email && <span className="field-error">{errors.email}</span>}
+          </div>
 
-          <input
-            name="password"
-            value={data.password}
-            onChange={onChangeHandler}
-            type="password"
-            placeholder="Your Password"
-            required
-          />
-
+          <div className="input-wrapper">
+            <input
+              name="password"
+              value={data.password}
+              onChange={onChangeHandler}
+              type="password"
+              placeholder="Your Password"
+              className={errors.password ? "input-error" : ""}
+              required
+            />
+            {errors.password && <span className="field-error">{errors.password}</span>}
+          </div>
         </div>
 
-        <button type="submit">
-          {loading
-            ? "Please Wait..."
-            : currState === "Sign Up"
-            ? "Create Account"
-            : "Login"}
+        <button type="submit" disabled={loading}>
+          {loading ? "Please Wait..." : currState === "Sign Up" ? "Create Account" : "Login"}
         </button>
 
         <div className="login-popup-condition">
           <input type="checkbox" required />
-          <p>
-            By continuing, I agree to the terms of use & privacy policy.
-          </p>
+          <p>By continuing, I agree to the terms of use & privacy policy.</p>
         </div>
 
         {currState === "Login" ? (
           <p>
-            Create a new account?
-            <span onClick={() => setCurrState("Sign Up")}>
+            Create a new account?{" "}
+            <span onClick={() => { setCurrState("Sign Up"); setErrors({}); }}>
               Click here
             </span>
           </p>
         ) : (
           <p>
-            Already have an account?
-            <span onClick={() => setCurrState("Login")}>
+            Already have an account?{" "}
+            <span onClick={() => { setCurrState("Login"); setErrors({}); }}>
               Login here
             </span>
           </p>
         )}
-
       </form>
     </div>
   );

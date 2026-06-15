@@ -1,0 +1,30 @@
+# dependencies
+**/node_modules/
+
+# env / secrets
+**/.env
+**/.env.*
+!**/.env.example
+
+# uploads / generated
+Backend/uploads/
+**/uploads/
+
+# logs
+**/*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# build output
+**/dist/
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# temp
+._*
+

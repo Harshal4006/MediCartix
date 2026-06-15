@@ -1,0 +1,134 @@
+.prescriptions-admin {
+  width: 100%;
+}
+
+.prescriptions-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.prescriptions-header select {
+  padding: 10px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 14px;
+  outline: none;
+  background: white;
+}
+
+.prescriptions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.prescription-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.prescription-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.prescription-user {
+  font-weight: 600;
+  font-size: 15px;
+  color: #0f172a;
+}
+
+.prescription-status {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.prescription-file-info {
+  display: flex;
+  gap: 16px;
+  font-size: 13px;
+  color: #64748b;
+  flex-wrap: wrap;
+}
+
+.prescription-note {
+  font-size: 13px;
+  color: #64748b;
+  background: #f8fafc;
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+
+.prescription-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  text-decoration: none;
+  transition: 0.2s;
+}
+
+.view-btn {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.view-btn:hover {
+  background: #e2e8f0;
+}
+
+.approve-btn {
+  background: #f0fdf4;
+  color: #16a34a;
+}
+
+.approve-btn:hover {
+  background: #dcfce7;
+}
+
+.reject-btn {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.reject-btn:hover {
+  background: #fee2e2;
+}
+
+.fulfill-btn {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.fulfill-btn:hover {
+  background: #dbeafe;
+}
+
+.loading-text {
+  text-align: center;
+  padding: 40px;
+  color: #64748b;
+}

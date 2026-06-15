@@ -7,16 +7,17 @@ import { StoreContext } from "../../context/StoreContext";
 
 const MedicineItem = ({ id, name, price, description, image }) => {
 
-  const { cartItems, addToCart, removeFromCart } = useContext(StoreContext);
+  const { url, cartItems, addToCart, removeFromCart } = useContext(StoreContext);
 
   return (
     <div className="medicin-item">
       <div className="medicin-item-img-container">
 
         <img
-          className="medicin-item-image"
-          src={`http://localhost:4000/images/${image}`}
+className="medicin-item-image"
+          src={`${url}/images/${image}`}
           alt={name}
+          loading="lazy"
         />
 
         {!cartItems[id] ? (

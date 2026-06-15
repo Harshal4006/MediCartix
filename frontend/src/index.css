@@ -16,20 +16,24 @@ body {
   overflow-x: hidden;
 }
 
+img {
+  max-width: 100%;
+  height: auto;
+}
+
 a{
     text-decoration: none;
     color: inherit;
 }
 
 .app {
-    width: 80%;
-    max-width: 1200px;
+    width: min(1200px, 92vw);
     margin: 0 auto;
 }
 
 @media (max-width: 480px) {
     .app {
-        width: 95%;
+        width: 96vw;
     }
 }
 

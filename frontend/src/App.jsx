@@ -9,23 +9,24 @@ import LoginPage from "./components/LoginPage/LoginPage";
 import Payment from "./pages/Payment/Payment";
 import MyOrders from "./pages/MyOrders/MyOrders";
 import Prescription from "./pages/Prescription/Prescription";
+import { useDebounce } from "./hooks/useDebounce";
 
 function App() {
-
-  const [showLogin, setShowLogin] = useState(false)
+  const [showLogin, setShowLogin] = useState(false);
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 300);
 
   return (
     <>
-    {showLogin?<LoginPage setShowLogin={setShowLogin}  />:<></>}
+      {showLogin ? <LoginPage setShowLogin={setShowLogin} /> : null}
       <div className="app">
         <Navbar setShowLogin={setShowLogin} setSearch={setSearch} />
         <Routes>
-          <Route path="/" element={<Home search={search} />} />
+          <Route path="/" element={<Home search={debouncedSearch} />} />
           <Route path="/cart" element={<Cart />} />
           <Route path="/order" element={<PlaceOrder />} />
           <Route path="/payment/:orderId" element={<Payment />} />
-          <Route path="/myorders" element={<MyOrders/>}/>
+          <Route path="/myorders" element={<MyOrders />} />
           <Route path="/prescription" element={<Prescription />} />
         </Routes>
       </div>

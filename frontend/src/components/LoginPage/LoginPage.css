@@ -61,6 +61,12 @@
   gap: 18px;
 }
 
+.input-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
 .login-popup-inputs input {
   border: 1px solid #e2e8f0;
   padding: 14px;
@@ -68,6 +74,7 @@
   font-size: 14px;
   background: #f8fafc;
   transition: 0.2s ease;
+  width: 100%;
 }
 
 .login-popup-inputs input:focus {
@@ -75,6 +82,23 @@
   border-color: #22c55e;
   box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.15);
   background: #ffffff;
+}
+
+.login-popup-inputs input.input-error {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+}
+
+.field-error {
+  color: #ef4444;
+  font-size: 12px;
+  padding-left: 4px;
+}
+
+.login-popup-container button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .login-popup-container button {

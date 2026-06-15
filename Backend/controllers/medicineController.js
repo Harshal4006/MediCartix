@@ -1,91 +1,167 @@
-import { error } from "console";
 import medicineModel from "../models/MedicineModel.js";
-import fs from 'fs';
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+import { logger } from "../config/logger.js";
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-// Add Medicine Item
+const CATEGORIES = [
+  "Prescription Medicines", "OTC Medicines", "Health & Wellness",
+  "First Aid", "Medical Devices", "Personal Care", "Baby Care", "Ayurvedic & Herbal"
+];
 
-const addmedicine = async (req, res) => {
-    
-    let image_filename = `${req.file.filename}`;
+const addMedicine = async (req, res) => {
+  try {
+    const { name, description, price, category } = req.body;
+
+    if (!name || !description || !price || !category) {
+      if (req.file) {
+        fs.unlink(req.file.path, () => {});
+      }
+      return res.status(400).json({ success: false, message: "All fields are required" });
+    }
+
+    if (typeof name !== "string" || name.trim().length < 2 || name.length > 100) {
+      fs.unlink(req.file.path, () => {});
+      return res.status(400).json({ success: false, message: "Name must be 2-100 characters" });
+    }
+
+    const parsedPrice = Number(price);
+    if (!Number.isFinite(parsedPrice) || parsedPrice <= 0 || parsedPrice > 100000) {
+      fs.unlink(req.file.path, () => {});
+      return res.status(400).json({ success: false, message: "Price must be between 1 and 100000" });
+    }
+
+    if (!CATEGORIES.includes(category)) {
+      fs.unlink(req.file.path, () => {});
+      return res.status(400).json({ success: false, message: "Invalid category" });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: "Medicine image is required" });
+    }
 
     const medicine = new medicineModel({
-        name:req.body.name,
-        description:req.body.description,
-        price:req.body.price,
-        category:req.body.category,
-        image:image_filename
-    })
-    try{
-        await medicine.save();
-        res.json({success:true,message:"Medicine Added"})
-    }catch (error) {
-        console.log(error)
-        res.json({success:false,message:"Error"})
-    }
-    
-}
-
-// All Medicine List
-const listMedicine = async (req,res) => {
-    try{
-        const medicines = await medicineModel.find({});
-        res.json({success:true,data:medicines})
-    }catch (error){
-        console.log(error)
-        res.json({success:false,message:"Error"})
-    }
-}
-
-// Remove Medicine Item
-const removeMedicine = async (req, res) => {
-  try {
-    const medicine = await medicineModel.findById(req.body.id);
-
-    // Check Medicine Exists
-    if (!medicine) {
-      return res.json({
-        success: false,
-        message: "Medicine not found",
-      });
-    }
-
-    // Delete Image
-    fs.unlink(`uploads/${medicine.image}`, (err) => {
-      if (err) console.log(err);
+      name: name.trim(),
+      description: description.trim(),
+      price: parsedPrice,
+      category,
+      image: req.file.filename
     });
 
-    // Delete From DB
-    await medicineModel.findByIdAndDelete(req.body.id);
+    await medicine.save();
+    res.status(201).json({ success: true, message: "Medicine Added", data: medicine });
+  } catch (error) {
+    if (req.file) {
+      fs.unlink(req.file.path, () => {});
+    }
+    logger.error("Add medicine error:", error);
+    res.status(500).json({ success: false, message: "Error adding medicine" });
+  }
+};
+
+const listMedicine = async (req, res) => {
+  try {
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 20));
+    const skip = (page - 1) * limit;
+
+    const [medicines, total] = await Promise.all([
+      medicineModel.find({}).sort({ createdAt: -1 }).skip(skip).limit(limit),
+      medicineModel.countDocuments({})
+    ]);
 
     res.json({
       success: true,
-      message: "Medicine Removed",
+      data: medicines,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+        hasMore: skip + medicines.length < total
+      }
     });
-
   } catch (error) {
-    console.log(error);
-    res.json({
-      success: false,
-      message: "Error removing medicine",
-    });
+    logger.error("List medicine error:", error);
+    res.status(500).json({ success: false, message: "Error fetching medicines" });
   }
 };
 
-// Search Medicines
+const removeMedicine = async (req, res) => {
+  try {
+    const { id } = req.body;
+
+    if (!id) {
+      return res.status(400).json({ success: false, message: "Medicine ID is required" });
+    }
+
+    const medicine = await medicineModel.findById(id);
+
+    if (!medicine) {
+      return res.status(404).json({ success: false, message: "Medicine not found" });
+    }
+
+    const imagePath = path.join(__dirname, "..", "uploads", medicine.image);
+    fs.unlink(imagePath, (err) => {
+      if (err && err.code !== "ENOENT") {
+        logger.error("Error deleting image file:", err);
+      }
+    });
+
+    await medicineModel.findByIdAndDelete(id);
+
+    res.json({ success: true, message: "Medicine Removed" });
+  } catch (error) {
+    logger.error("Remove medicine error:", error);
+    res.status(500).json({ success: false, message: "Error removing medicine" });
+  }
+};
+
 const searchMedicine = async (req, res) => {
   try {
-    const query = req.query.q;
+    const query = (req.query.q || "").trim();
 
-    const medicines = await medicineModel.find({
-      name: { $regex: query, $options: "i" } // case insensitive search
+    if (!query) {
+      return res.json({ success: true, data: [] });
+    }
+
+    if (query.length > 100) {
+      return res.status(400).json({ success: false, message: "Search query too long" });
+    }
+
+    const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 20));
+    const skip = (page - 1) * limit;
+
+    const [medicines, total] = await Promise.all([
+      medicineModel.find({
+        name: { $regex: escapedQuery, $options: "i" }
+      }).sort({ createdAt: -1 }).skip(skip).limit(limit),
+      medicineModel.countDocuments({
+        name: { $regex: escapedQuery, $options: "i" }
+      })
+    ]);
+
+    res.json({
+      success: true,
+      data: medicines,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+        hasMore: skip + medicines.length < total
+      }
     });
-
-    res.json({ success: true, data: medicines });
   } catch (error) {
-    console.log(error);
-    res.json({ success: false, message: "Search failed" });
+    logger.error("Search medicine error:", error);
+    res.status(500).json({ success: false, message: "Search failed" });
   }
 };
 
-export {addmedicine, listMedicine, removeMedicine, searchMedicine}
+export { addMedicine, listMedicine, removeMedicine, searchMedicine };
