@@ -13,7 +13,6 @@ const userSchema = new mongoose.Schema(
     password: { type: String, required: true },
     phone: { type: String, default: "" },
     role: { type: String, enum: ["customer", "admin"], default: "customer" },
-    cartData: { type: Object, default: {} }
   },
   { minimize: false, timestamps: true }
 );

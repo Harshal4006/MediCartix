@@ -107,6 +107,7 @@ const StoreContextProvider = ({ children }) => {
   };
 
   const addToCart = async (itemId) => {
+    const prev = cartItems;
     setCartItems((prev) => ({
       ...prev,
       [itemId]: (prev[itemId] || 0) + 1,
@@ -116,13 +117,16 @@ const StoreContextProvider = ({ children }) => {
       try {
         await api.post("/api/cart/add", { itemId });
       } catch (error) {
-        console.error("Add Cart Error:", error?.response?.data?.message || error.message);
+        setCartItems(prev);
+        toast.error("Failed to add item. Please try again.");
+        return;
       }
     }
     toast("Added to cart", { icon: "🛒", style: { background: "#f0fdf4", color: "#15803d" } });
   };
 
   const removeFromCart = async (itemId) => {
+    const prev = cartItems;
     setCartItems((prev) => {
       const updated = { ...prev };
       if (updated[itemId] > 1) {
@@ -137,7 +141,9 @@ const StoreContextProvider = ({ children }) => {
       try {
         await api.post("/api/cart/remove", { itemId });
       } catch (error) {
-        console.error("Remove Cart Error:", error?.response?.data?.message || error.message);
+        setCartItems(prev);
+        toast.error("Failed to remove item. Please try again.");
+        return;
       }
     }
     toast("Removed from cart", { icon: "🗑️", style: { background: "#fef2f2", color: "#dc2626" } });

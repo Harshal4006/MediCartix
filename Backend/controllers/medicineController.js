@@ -63,7 +63,7 @@ const listMedicine = asyncHandler(async (req, res) => {
   const { page, limit, skip } = parsePagination(req.query);
 
   const [medicines, total] = await Promise.all([
-    medicineModel.find({}).sort({ createdAt: -1 }).skip(skip).limit(limit),
+    medicineModel.find({}).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
     medicineModel.countDocuments({})
   ]);
 
@@ -98,14 +98,32 @@ const searchMedicine = asyncHandler(async (req, res) => {
   if (!query) return res.json({ success: true, data: [] });
   if (query.length > 100) throw AppError.badRequest("Search query too long");
 
-  const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const { page, limit, skip } = parsePagination(req.query);
 
-  const [medicines, total] = await Promise.all([
-    medicineModel.find({ name: { $regex: escapedQuery, $options: "i" } })
-      .sort({ createdAt: -1 }).skip(skip).limit(limit),
-    medicineModel.countDocuments({ name: { $regex: escapedQuery, $options: "i" } })
-  ]);
+  let medicines, total;
+
+  if (query.length >= 3) {
+    const textFilter = { $text: { $search: query } };
+    [medicines, total] = await Promise.all([
+      medicineModel.find(textFilter)
+        .sort({ score: { $meta: "textScore" } })
+        .skip(skip).limit(limit).lean(),
+      medicineModel.countDocuments(textFilter)
+    ]);
+  }
+
+  if (!medicines || medicines.length === 0) {
+    const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const regexTerms = escapedQuery.split(/\s+/).filter(Boolean);
+    const regexFilter = {
+      name: { $regex: regexTerms.join("|"), $options: "i" }
+    };
+    [medicines, total] = await Promise.all([
+      medicineModel.find(regexFilter)
+        .sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+      medicineModel.countDocuments(regexFilter)
+    ]);
+  }
 
   res.json({
     success: true,

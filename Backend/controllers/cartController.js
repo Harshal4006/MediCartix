@@ -45,7 +45,7 @@ const removeFromCart = asyncHandler(async (req, res) => {
 
 const getCart = asyncHandler(async (req, res) => {
   const { userId } = req.body;
-  const cart = await cartModel.findOne({ userId });
+  const cart = await cartModel.findOne({ userId }).lean();
 
   const cartData = {};
   if (cart) {

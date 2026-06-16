@@ -105,7 +105,7 @@ const getFullProfile = asyncHandler(async (req, res) => {
   const userId = req.userId || req.body?.userId;
   if (!userId) throw new AppError("Not authenticated", { statusCode: 401, logLabel: "Auth" });
 
-  const user = await userModel.findById(userId).select("-password -cartData");
+  const user = await userModel.findById(userId).select("-password");
   if (!user) throw AppError.notFound("User");
 
   const token = createToken(user._id, user.role);
@@ -151,7 +151,7 @@ const updateUserProfile = asyncHandler(async (req, res) => {
 
   const user = await userModel
     .findByIdAndUpdate(userId, { $set: updates }, { new: true, runValidators: true })
-    .select("-password -cartData");
+    .select("-password");
 
   if (!user) throw AppError.notFound("User");
 

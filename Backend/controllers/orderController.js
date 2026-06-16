@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import orderModel from "../models/orderModel.js";
 import userModel from "../models/userModel.js";
 import cartModel from "../models/cartModel.js";
@@ -14,9 +15,9 @@ const VALID_STATUSES = ["Medicine Processing", "Out for delivery", "Delivered", 
 const VALID_STATUSES_FILTER = [...VALID_STATUSES, "Payment Failed"];
 
 const placeOrder = asyncHandler(async (req, res) => {
-  const { userId, items, address, paymentMethod } = req.body;
+  const { userId, address, paymentMethod } = req.body;
 
-  if (!userId || !Array.isArray(items) || items.length === 0 || !address) {
+  if (!address) {
     throw AppError.badRequest("Invalid order data");
   }
 
@@ -26,17 +27,22 @@ const placeOrder = asyncHandler(async (req, res) => {
   const user = await userModel.findById(userId).select("_id");
   if (!user) throw AppError.notFound("User");
 
-  const itemIds = items.map((item) => item._id || item.medicineId).filter(Boolean);
-  if (itemIds.length !== items.length) throw AppError.badRequest("Each item must have a valid ID");
+  const cart = await cartModel.findOne({ userId }).lean();
+  if (!cart || !cart.items || cart.items.length === 0) {
+    throw AppError.badRequest("Cart is empty");
+  }
 
+  const itemIds = cart.items.map((item) => item.medicineId);
   const medicines = await medicineModel.find({ _id: { $in: itemIds } }).lean();
-  if (medicines.length !== items.length) throw AppError.badRequest("One or more medicines not found");
+  if (medicines.length !== cart.items.length) {
+    throw AppError.badRequest("One or more medicines not found");
+  }
 
   const medicineMap = Object.fromEntries(medicines.map((m) => [String(m._id), m]));
 
   let subtotal = 0;
-  const orderItems = items.map((item) => {
-    const id = String(item._id || item.medicineId);
+  const orderItems = cart.items.map((item) => {
+    const id = String(item.medicineId);
     const medicine = medicineMap[id];
     if (!medicine) throw AppError.badRequest(`Medicine ${id} not found`);
 
@@ -68,8 +74,18 @@ const placeOrder = asyncHandler(async (req, res) => {
     statusHistory: [{ status: "Order Placed", timestamp: now }, { status: "Medicine Processing", timestamp: now }]
   });
 
-  await newOrder.save();
-  await cartModel.findOneAndDelete({ userId });
+  const session = await mongoose.startSession();
+  try {
+    session.startTransaction();
+    await newOrder.save({ session });
+    await cartModel.findOneAndDelete({ userId }, { session });
+    await session.commitTransaction();
+  } catch (err) {
+    await session.abortTransaction();
+    throw err;
+  } finally {
+    session.endSession();
+  }
 
   res.status(201).json({
     success: true,
@@ -112,7 +128,7 @@ const userOrders = asyncHandler(async (req, res) => {
   const { page, limit, skip } = parsePagination(req.query, { limit: 10, maxLimit: 20 });
 
   const [orders, total] = await Promise.all([
-    orderModel.find({ userId }).sort({ date: -1 }).skip(skip).limit(limit),
+    orderModel.find({ userId }).sort({ date: -1 }).skip(skip).limit(limit).lean(),
     orderModel.countDocuments({ userId })
   ]);
 

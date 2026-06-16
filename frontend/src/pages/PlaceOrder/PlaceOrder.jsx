@@ -8,8 +8,6 @@ const PlaceOrder = () => {
   const navigate = useNavigate();
 
   const {
-    cartItems,
-    medicine_list,
     getTotalCartAmount,
     getTotalCartItems,
     setCartItems,
@@ -89,18 +87,7 @@ const PlaceOrder = () => {
 
     setLoading(true);
 
-    let orderItems = [];
-    medicine_list.forEach((item) => {
-      if (cartItems[item._id] > 0) {
-        orderItems.push({
-          _id: item._id,
-          quantity: cartItems[item._id],
-        });
-      }
-    });
-
     const orderData = {
-      items: orderItems,
       address: data,
       paymentMethod,
     };

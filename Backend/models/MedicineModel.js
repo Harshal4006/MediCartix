@@ -60,6 +60,9 @@ const medicineSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+medicineSchema.index({ createdAt: -1 });
+medicineSchema.index({ category: 1, createdAt: -1 });
+medicineSchema.index({ name: "text", description: "text" }, { weights: { name: 10, description: 5 }, name: "medicine_text_search" });
 
 const medicineModel =
   mongoose.models.medicine ||

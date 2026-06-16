@@ -36,7 +36,8 @@ const uploadPrescription = asyncHandler(async (req, res) => {
 const getUserPrescriptions = asyncHandler(async (req, res) => {
   const prescriptions = await prescriptionModel
     .find({ userId: req.body.userId })
-    .sort({ createdAt: -1 });
+    .sort({ createdAt: -1 })
+    .lean();
 
   res.json({ success: true, data: prescriptions });
 });
