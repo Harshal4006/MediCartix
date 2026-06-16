@@ -15,6 +15,7 @@ const PlaceOrder = () => {
     setCartItems,
     token,
     api,
+    authChecked,
   } = useContext(StoreContext);
 
   const [data, setData] = useState({
@@ -56,11 +57,19 @@ const PlaceOrder = () => {
     return Object.keys(errs).length === 0;
   };
 
-  if (!token) {
+  if (authChecked && !token) {
     return (
       <div className="place-order-login-warning">
         <h2>Login Required</h2>
         <p>Please sign in to place an order.</p>
+      </div>
+    );
+  }
+
+  if (!authChecked) {
+    return (
+      <div className="place-order-login-warning">
+        <p>Checking authentication...</p>
       </div>
     );
   }
@@ -85,8 +94,6 @@ const PlaceOrder = () => {
       if (cartItems[item._id] > 0) {
         orderItems.push({
           _id: item._id,
-          name: item.name,
-          price: item.price,
           quantity: cartItems[item._id],
         });
       }
@@ -94,7 +101,6 @@ const PlaceOrder = () => {
 
     const orderData = {
       items: orderItems,
-      amount: getTotalCartAmount() + 40,
       address: data,
       paymentMethod,
     };
@@ -106,7 +112,7 @@ const PlaceOrder = () => {
         setCartItems({});
         toast.success("Order placed successfully!");
         navigate("/payment/" + response.data.orderId, {
-          state: { amount: orderData.amount },
+          state: { amount: response.data.amount },
         });
       }
     } catch (error) {

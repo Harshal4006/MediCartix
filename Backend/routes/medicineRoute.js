@@ -12,7 +12,7 @@ const __dirname = path.dirname(__filename);
 const medicineRouter = express.Router();
 
 const storage = multer.diskStorage({
-  destination: path.join(__dirname, "..", "uploads"),
+  destination: path.join(__dirname, "..", "uploads", "medicines"),
   filename: (req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase();
     const name = file.originalname.replace(ext, "").replace(/[^a-zA-Z0-9]/g, "_").substring(0, 30);

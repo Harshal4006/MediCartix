@@ -55,23 +55,48 @@
   object-fit: cover;
   border-radius: 50%;
   cursor: pointer;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
 }
 
 .explore-menu-list-item img:hover {
-  transform: scale(1.06);
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
+  transform: scale(1.08);
+  box-shadow: 0 12px 28px rgba(34, 197, 94, 0.2);
+}
+
+.explore-menu-list-item img:active {
+  transform: scale(0.96);
 }
 
 .explore-menu-list-item p {
   color: #374151;
   font-size: clamp(14px, 1.2vw, 17px);
   font-weight: 600;
+  transition: color 0.3s ease;
+  position: relative;
+}
+
+.explore-menu-list-item p::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -4px;
+  width: 0;
+  height: 2px;
+  background: #22c55e;
+  border-radius: 2px;
+  transform: translateX(-50%);
+  transition: width 0.3s ease;
+}
+
+.explore-menu-list-item:hover p::after {
+  width: 60%;
 }
 
 .explore-menu-list-item .active {
   border: 4px solid #166534;
   padding: 3px;
+  animation: pulse 2s ease infinite;
 }
 
 .explore-menu hr {

@@ -8,7 +8,8 @@ import {
   uploadPrescription,
   getUserPrescriptions,
   listPrescriptions,
-  updatePrescriptionStatus
+  updatePrescriptionStatus,
+  getPrescriptionFile
 } from "../controllers/prescriptionController.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -42,5 +43,6 @@ prescriptionRouter.post("/upload", authMiddleware, upload.single("prescription")
 prescriptionRouter.get("/mine", authMiddleware, getUserPrescriptions);
 prescriptionRouter.get("/list", authMiddleware, adminMiddleware, listPrescriptions);
 prescriptionRouter.post("/status", authMiddleware, adminMiddleware, updatePrescriptionStatus);
+prescriptionRouter.get("/file/:id", getPrescriptionFile);
 
 export default prescriptionRouter;

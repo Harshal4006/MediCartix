@@ -5,7 +5,8 @@ import helmet from "helmet";
 import path from "path";
 import { fileURLToPath } from "url";
 import rateLimit from "express-rate-limit";
-import mongoSanitize from "express-mongo-sanitize";
+
+import cookieParser from "cookie-parser";
 import { connectDB } from "./config/db.js";
 import medicineRouter from "./routes/medicineRoute.js";
 import userRouter from "./routes/userRoute.js";
@@ -15,6 +16,7 @@ import adminRouter from "./routes/adminRoute.js";
 import paymentRouter from "./routes/paymentRoute.js";
 import dashboardRouter from "./routes/dashboardRoute.js";
 import prescriptionRouter from "./routes/prescriptionRoute.js";
+import { handleRazorpayWebhook } from "./controllers/paymentController.js";
 import { errorHandler, notFound } from "./middleware/errorHandler.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -77,18 +79,23 @@ app.use(globalLimiter);
 app.use("/api/user/login", authLimiter);
 app.use("/api/user/register", authLimiter);
 
+// Cookie parser
+app.use(cookieParser());
+
+// Webhook routes — raw body required for signature verification (must be before express.json())
+app.post("/api/payment/razorpay-webhook", express.raw({ type: "application/json" }), handleRazorpayWebhook);
+
 // Body parsing
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 
-// NoSQL injection prevention
-app.use(mongoSanitize());
+// NoSQL injection prevention is handled natively by Mongoose 9+ schema types and query middleware
 
 // DB
 await connectDB();
 
-// Static files
-app.use("/images", express.static(path.join(__dirname, "uploads")));
+// Static files (non-sensitive uploads only)
+app.use("/images", express.static(path.join(__dirname, "uploads", "medicines")));
 
 // API Routes
 app.use("/api/medicine", medicineRouter);

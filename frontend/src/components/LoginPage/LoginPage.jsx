@@ -5,7 +5,7 @@ import { toast } from "react-toastify";
 import { StoreContext } from "../../context/StoreContext";
 
 const LoginPage = ({ setShowLogin }) => {
-  const { api, setToken, setUser } = useContext(StoreContext);
+  const { login, register } = useContext(StoreContext);
 
   const [currState, setCurrState] = useState("Sign Up");
   const [loading, setLoading] = useState(false);
@@ -50,23 +50,18 @@ const LoginPage = ({ setShowLogin }) => {
 
     setLoading(true);
 
-    const endpoint = currState === "Login" ? "/api/user/login" : "/api/user/register";
-
     try {
-      const res = await api.post(endpoint, data);
-
-      if (res.data.success) {
-        setToken(res.data.token);
-        if (res.data.user) {
-          setUser(res.data.user);
-        }
-
-        toast.success(
-          currState === "Login" ? "Welcome back!" : "Account created successfully"
-        );
-
-        setShowLogin(false);
+      let result;
+      if (currState === "Login") {
+        result = await login(data.email, data.password);
+        if (!result.success) throw { response: { data: { message: result.message || "Invalid credentials" } } };
+        toast.success("Welcome back!");
+      } else {
+        result = await register(data.name, data.email, data.password);
+        if (!result.success) throw { response: { data: { message: result.message || "Registration failed" } } };
+        toast.success("Account created successfully");
       }
+      setShowLogin(false);
     } catch (error) {
       const message = error.response?.data?.message || "Something went wrong";
       toast.error(message);

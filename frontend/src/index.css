@@ -1,19 +1,39 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap');
 
-*{
-    padding: 0;
-    margin: 0;
-    box-sizing: border-box;
-    font-family: outfit;
-    scroll-behavior: smooth;
+* {
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+  font-family: outfit;
+  scroll-behavior: smooth;
 }
 
-body{
-    min-height: 100vh
+::selection {
+  background: #22c55e;
+  color: #ffffff;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #86efac;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #22c55e;
 }
 
 body {
+  min-height: 100vh;
   overflow-x: hidden;
+  animation: pageFade 0.6s ease;
 }
 
 img {
@@ -21,46 +41,50 @@ img {
   height: auto;
 }
 
-a{
-    text-decoration: none;
-    color: inherit;
+a {
+  text-decoration: none;
+  color: inherit;
 }
 
 .app {
-    width: min(1200px, 92vw);
-    margin: 0 auto;
+  width: min(1200px, 92vw);
+  margin: 0 auto;
 }
 
 @media (max-width: 480px) {
-    .app {
-        width: 96vw;
-    }
-}
-
-
-@keyframes fadeUp {
-  0% {
-    opacity: 0;
-    transform: translateY(40px);
+  .app {
+    width: 96vw;
   }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-
-body {
-  animation: pageFade 0.6s ease;
 }
 
 @keyframes pageFade {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .header,
@@ -69,17 +93,6 @@ body {
 .app-download,
 .footer {
   animation: fadeUp 0.8s ease both;
-}
-
-@keyframes fadeUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
 .medicin-item,

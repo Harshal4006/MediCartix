@@ -17,9 +17,16 @@
 .upload-box{
   border:2px dashed #22c55e;
   padding:40px;
-  border-radius:12px;
+  border-radius:16px;
   max-width:400px;
   margin:auto;
+  transition: all 0.3s ease;
+  background: linear-gradient(135deg, #f0fdf4, #ffffff);
+}
+
+.upload-box:hover {
+  border-color: #15803d;
+  background: linear-gradient(135deg, #dcfce7, #f0fdf4);
 }
 
 .upload-btn{

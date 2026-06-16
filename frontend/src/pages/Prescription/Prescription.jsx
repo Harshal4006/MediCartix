@@ -5,7 +5,7 @@ import { toast } from "react-toastify";
 import { Link } from "react-router-dom";
 
 const Prescription = () => {
-  const { api, token } = useContext(StoreContext);
+  const { api, token, authChecked } = useContext(StoreContext);
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
 
@@ -67,7 +67,7 @@ const Prescription = () => {
       <h2>Upload Your Prescription</h2>
       <p>Upload a doctor's prescription and we will help you find the medicines.</p>
 
-      {!token ? (
+      {authChecked && !token ? (
         <div className="upload-login-prompt">
           <p>Please login to upload a prescription.</p>
           <Link to="/" className="btn primary">Go to Home</Link>

@@ -1,6 +1,6 @@
 import "./List.css";
 import axios from "axios";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { MdDelete } from "react-icons/md";
 import { toast } from "react-toastify";
 
@@ -10,8 +10,8 @@ const List = () => {
 
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
+  const pageRef = useRef(1);
 
   const fetchList = async (pageNum = 1) => {
     try {
@@ -54,6 +54,7 @@ const List = () => {
 
   useEffect(() => {
     fetchList(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (loading && list.length === 0) {
@@ -110,7 +111,7 @@ const List = () => {
 
       {hasMore && (
         <div className="load-more" style={{ textAlign: "center", marginTop: 20 }}>
-          <button onClick={() => fetchList(page + 1)} disabled={loading}>
+          <button onClick={() => { pageRef.current += 1; fetchList(pageRef.current); }} disabled={loading}>
             {loading ? "Loading..." : "Load More"}
           </button>
         </div>

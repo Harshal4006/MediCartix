@@ -1,38 +1,36 @@
 import React, { useContext, useState, useRef, useEffect } from "react";
 import "./Navbar.css";
-import { FiMenu, FiSearch, FiX } from "react-icons/fi";
+import { FiMenu, FiX } from "react-icons/fi";
 import { HiOutlineShoppingBag } from "react-icons/hi";
 import { FaUserCircle } from "react-icons/fa";
 import { Link, useLocation } from "react-router-dom";
 import { StoreContext } from "../../context/StoreContext";
 
-export const Navbar = ({ setShowLogin, setSearch }) => {
+const sectionFromPath = (path) => {
+  if (path === "/") return "home";
+  if (path === "/medicines") return "medicines";
+  if (path === "/cart") return "cart";
+  if (path === "/myorders") return "orders";
+  if (path === "/prescription") return "prescription";
+  return "home";
+};
+
+export const Navbar = ({ setShowLogin }) => {
   const location = useLocation();
-  const [activeSection, setActiveSection] = useState("home");
+  const activeSection = sectionFromPath(location.pathname);
   const [showProfile, setShowProfile] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
-  const [showSearch, setShowSearch] = useState(false);
-  const [searchInput, setSearchInput] = useState("");
   const profileRef = useRef();
 
-  const { getTotalCartItems, token, setToken, user } = useContext(StoreContext);
+  const { getTotalCartItems, token, logout, user, authChecked } = useContext(StoreContext);
 
-  useEffect(() => {
-    const path = location.pathname;
-    if (path === "/") setActiveSection("home");
-    else if (path === "/cart") setActiveSection("cart");
-    else if (path === "/myorders") setActiveSection("orders");
-    else if (path === "/prescription") setActiveSection("prescription");
-  }, [location.pathname]);
-
-  const logout = () => {
-    setToken("");
+  const handleLogout = () => {
+    logout();
     setShowProfile(false);
   };
 
   const closeOverlays = () => {
     setShowProfile(false);
-    setShowSearch(false);
     setShowMobileMenu(false);
   };
 
@@ -46,13 +44,6 @@ export const Navbar = ({ setShowLogin, setSearch }) => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleSearch = (e) => {
-    setSearchInput(e.target.value);
-    if (setSearch) {
-      setSearch(e.target.value);
-    }
-  };
-
   return (
     <div className="navbar-wrapper">
       <div className="navbar">
@@ -61,10 +52,10 @@ export const Navbar = ({ setShowLogin, setSearch }) => {
         </Link>
 
         <ul className="navbar-menu">
-          <Link to="/" onClick={() => setActiveSection("home")} className={activeSection === "home" ? "active" : ""}>Home</Link>
-          <a href="#explore-menu" onClick={() => setActiveSection("menu")} className={activeSection === "menu" ? "active" : ""}>Menu</a>
-          <a href="#whyus" onClick={() => setActiveSection("WhyUs")} className={activeSection === "WhyUs" ? "active" : ""}>Why Us</a>
-          <a href="#footer" onClick={() => setActiveSection("contact-us")} className={activeSection === "contact-us" ? "active" : ""}>Contact</a>
+          <Link to="/" className={activeSection === "home" ? "active" : ""}>Home</Link>
+          <a href="#explore-menu" className={activeSection === "menu" ? "active" : ""}>Menu</a>
+          <Link to="/medicines" className={activeSection === "medicines" ? "active" : ""}>All Medicines</Link>
+          <a href="#footer" className={activeSection === "contact-us" ? "active" : ""}>Contact</a>
         </ul>
 
         <div className="navbar-right">
@@ -79,11 +70,7 @@ export const Navbar = ({ setShowLogin, setSearch }) => {
             {showMobileMenu ? <FiX /> : <FiMenu />}
           </button>
 
-          <div className="nav-icon" onClick={() => setShowSearch(!showSearch)} aria-label="Toggle search">
-            <FiSearch />
-          </div>
-
-          <div className="nav-icon navbar-search-icon">
+          <div className="nav-icon navbar-cart-icon">
             <Link to="/cart" aria-label="View cart">
               <HiOutlineShoppingBag />
             </Link>
@@ -92,11 +79,12 @@ export const Navbar = ({ setShowLogin, setSearch }) => {
             )}
           </div>
 
-          {!token ? (
+          {!token && authChecked ? (
             <button className="Sign" onClick={() => setShowLogin(true)}>
               Sign In
             </button>
-          ) : (
+          ) : null}
+          {token ? (
             <div className="navbar-profile" ref={profileRef}>
               <FaUserCircle className="profile-icon" onClick={() => setShowProfile(!showProfile)} />
               {user && <span className="profile-name">{user.name?.split(" ")[0]}</span>}
@@ -113,40 +101,34 @@ export const Navbar = ({ setShowLogin, setSearch }) => {
                       My Prescriptions
                     </Link>
                   </li>
-                  <li onClick={() => { logout(); closeOverlays(); }}>
+                  <li>
+                    <Link to="/profile" onClick={closeOverlays}>
+                      My Profile
+                    </Link>
+                  </li>
+                  <li onClick={() => { handleLogout(); closeOverlays(); }}>
                     Logout
                   </li>
                 </ul>
               )}
             </div>
-          )}
+          ) : null}
         </div>
       </div>
 
       {showMobileMenu && (
         <div className="navbar-mobile-overlay" onClick={() => setShowMobileMenu(false)}>
           <div id="navbar-mobile-menu" className="navbar-mobile-menu" onClick={(e) => e.stopPropagation()}>
-            <Link to="/" onClick={() => { setActiveSection("home"); closeOverlays(); }} className={activeSection === "home" ? "active" : ""}>Home</Link>
-            <a href="#explore-menu" onClick={() => { setActiveSection("menu"); closeOverlays(); }} className={activeSection === "menu" ? "active" : ""}>Menu</a>
-            <a href="#whyus" onClick={() => { setActiveSection("WhyUs"); closeOverlays(); }} className={activeSection === "WhyUs" ? "active" : ""}>Why Us</a>
+            <Link to="/" onClick={closeOverlays} className={activeSection === "home" ? "active" : ""}>Home</Link>
+            <a href="#explore-menu" onClick={closeOverlays} className={activeSection === "menu" ? "active" : ""}>Menu</a>
+            <Link to="/medicines" onClick={closeOverlays} className={activeSection === "medicines" ? "active" : ""}>All Medicines</Link>
             <Link to="/prescription" onClick={closeOverlays}>Upload Prescription</Link>
             <Link to="/cart" onClick={closeOverlays}>Cart</Link>
-            <a href="#footer" onClick={() => { setActiveSection("contact-us"); closeOverlays(); }} className={activeSection === "contact-us" ? "active" : ""}>Contact</a>
+            <a href="#footer" onClick={closeOverlays} className={activeSection === "contact-us" ? "active" : ""}>Contact</a>
           </div>
         </div>
       )}
 
-      {showSearch && (
-        <div className="navbar-search-box">
-          <input
-            type="text"
-            placeholder="Search medicines..."
-            value={searchInput}
-            onChange={handleSearch}
-            autoFocus
-          />
-        </div>
-      )}
     </div>
   );
 };

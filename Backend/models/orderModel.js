@@ -19,14 +19,23 @@ const addressSchema = new mongoose.Schema({
   phone: { type: String }
 }, { _id: false });
 
+const statusEntrySchema = new mongoose.Schema({
+  status: { type: String, required: true },
+  timestamp: { type: Date, default: Date.now }
+}, { _id: false });
+
 const orderSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: "user", required: true, index: true },
   items: { type: [orderItemSchema], required: true },
   amount: { type: Number, required: true },
+  subtotal: { type: Number, required: true },
+  deliveryFee: { type: Number, required: true },
   address: { type: addressSchema, required: true },
   paymentMethod: { type: String, enum: ["COD", "Razorpay", "Stripe"], default: "COD" },
+  razorpayOrderId: { type: String, default: "" },
   paymentId: { type: String, default: "" },
   status: { type: String, default: "Medicine Processing", index: true },
+  statusHistory: { type: [statusEntrySchema], default: [] },
   date: { type: Date, default: Date.now },
   payment: { type: Boolean, default: false }
 });

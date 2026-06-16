@@ -73,7 +73,7 @@
   border-radius: 14px;
   font-size: 14px;
   background: #f8fafc;
-  transition: 0.2s ease;
+  transition: all 0.3s ease;
   width: 100%;
 }
 
@@ -82,6 +82,10 @@
   border-color: #22c55e;
   box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.15);
   background: #ffffff;
+}
+
+.login-popup-inputs input:hover {
+  border-color: #bbf7d0;
 }
 
 .login-popup-inputs input.input-error {

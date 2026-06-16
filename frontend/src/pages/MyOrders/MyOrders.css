@@ -1,77 +1,202 @@
-.myorders{
-  width:100%;
-  padding:clamp(24px, 4vw, 40px) 0;
-  background:#f6f7fb;
-  min-height:90vh;
+.myorders {
+  width: 100%;
+  padding: clamp(24px, 4vw, 40px) 0;
+  background: transparent;
+  min-height: 90vh;
   margin-bottom: 30px;
 }
 
-.myorders h2{
-  margin-bottom:25px;
+.myorders h2 {
+  margin-bottom: 25px;
 }
 
-.orders-container{
-  display:flex;
-  flex-direction:column;
-  gap:15px;
+.orders-container {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
 }
 
-.order-row{
-  display:grid;
-  grid-template-columns:44px minmax(0, 1fr) auto auto auto 130px;
-  grid-template-areas: "icon items price count status btn";
-  align-items:center;
-  background:white;
-  padding:18px 20px;
-  border-radius:8px;
-  border:1px solid #eee;
-  gap:15px;
-  transition:0.2s;
+.order-row {
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid #e5e7eb;
+  padding: 18px 20px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.order-row:hover{
-  box-shadow:0 5px 15px rgba(0,0,0,0.06);
+.order-row:hover {
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.06);
+  border-color: #d1fae5;
 }
 
-.order-icon{
+.order-main {
+  display: grid;
+  grid-template-columns: 44px 1fr auto auto 130px;
+  grid-template-areas: "icon items price count date";
+  align-items: center;
+  gap: 15px;
+}
+
+.order-icon {
   grid-area: icon;
-  font-size:28px;
-  color:#f59e0b;
+  font-size: 28px;
+  color: #f59e0b;
 }
 
-.order-items{
+.order-items {
   grid-area: items;
-  font-size:14px;
-  color:#444;
-  min-width:0;
-  overflow-wrap:anywhere;
+  font-size: 14px;
+  color: #444;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
-.order-price{
+.order-price {
   grid-area: price;
-  font-weight:600;
-  white-space:nowrap;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
-.order-count{
+.order-count {
   grid-area: count;
-  font-size:14px;
-  color:#555;
-  white-space:nowrap;
+  font-size: 14px;
+  color: #555;
+  white-space: nowrap;
 }
 
-.order-status{
-  grid-area: status;
-  font-size:14px;
-  white-space:nowrap;
-  font-weight:600;
+.order-date {
+  grid-area: date;
+  font-size: 12px;
+  color: #94a3b8;
+  white-space: nowrap;
 }
 
-.order-date{
-  grid-area: btn;
-  font-size:12px;
-  color:#94a3b8;
-  white-space:nowrap;
+.timeline {
+  display: flex;
+  align-items: center;
+  margin-top: 14px;
+  padding: 12px 16px;
+  background: #f8fafc;
+  border-radius: 10px;
+  gap: 0;
+  overflow-x: auto;
+}
+
+.timeline.cancelled {
+  background: #fef2f2;
+}
+
+.tl-step {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.tl-dot {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  flex-shrink: 0;
+  transition: all 0.3s;
+  border: 2px solid #d1d5db;
+  background: #fff;
+}
+
+.tl-step.completed .tl-dot {
+  background: #22c55e;
+  border-color: #22c55e;
+  color: #fff;
+}
+
+.tl-step.current .tl-dot {
+  background: #f59e0b;
+  border-color: #f59e0b;
+  color: #fff;
+  box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.2);
+}
+
+.tl-step.terminal .tl-dot.cancelled {
+  background: #ef4444;
+  border-color: #ef4444;
+  color: #fff;
+}
+
+.tl-step.pending .tl-dot {
+  background: #fff;
+  border-color: #d1d5db;
+}
+
+.tl-step.inactive .tl-dot {
+  background: #f3f4f6;
+  border-color: #e5e7eb;
+}
+
+.tl-line {
+  flex: 1;
+  height: 3px;
+  background: #e5e7eb;
+  margin: 0 4px;
+  min-width: 20px;
+  border-radius: 2px;
+}
+
+.tl-step.completed + .tl-line {
+  background: #22c55e;
+}
+
+.tl-step.current + .tl-line {
+  background: #f59e0b;
+}
+
+.tl-step.terminal + .tl-line {
+  background: #ef4444;
+}
+
+.tl-label {
+  font-size: 11px;
+  color: #94a3b8;
+  white-space: nowrap;
+  position: absolute;
+  bottom: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.tl-step {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+}
+
+.tl-step .tl-dot {
+  margin-bottom: 20px;
+}
+
+.tl-label {
+  position: static;
+  transform: none;
+  margin-top: 4px;
+}
+
+.tl-step.completed .tl-label {
+  color: #22c55e;
+  font-weight: 600;
+}
+
+.tl-step.current .tl-label {
+  color: #f59e0b;
+  font-weight: 600;
+}
+
+.tl-step.terminal .tl-label {
+  color: #ef4444;
+  font-weight: 600;
 }
 
 .myorders-empty {
@@ -147,34 +272,50 @@
   100% { background-position: -200% 0; }
 }
 
-@media(max-width:1100px){
-  .order-row{
-    grid-template-columns:44px minmax(0, 1fr) 130px;
+@media (max-width: 1100px) {
+  .order-main {
+    grid-template-columns: 44px 1fr 130px;
     grid-template-areas:
-      "icon items btn"
-      "icon price status"
-      "icon count count";
-    align-items:flex-start;
-    gap:8px;
+      "icon items date"
+      "icon price count";
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .timeline {
+    padding: 10px 12px;
   }
 }
 
-@media(max-width:600px){
-  .myorders{
-    padding:24px 0;
+@media (max-width: 600px) {
+  .myorders {
+    padding: 24px 0;
   }
 
-  .order-row{
-    grid-template-columns:1fr;
+  .order-main {
+    grid-template-columns: 1fr;
     grid-template-areas:
       "items"
       "price"
       "count"
-      "status"
-      "btn";
+      "date";
   }
 
-  .order-icon{
-    display:none;
+  .order-icon {
+    display: none;
+  }
+
+  .timeline {
+    padding: 8px 10px;
+  }
+
+  .tl-dot {
+    width: 22px;
+    height: 22px;
+    font-size: 9px;
+  }
+
+  .tl-label {
+    font-size: 10px;
   }
 }

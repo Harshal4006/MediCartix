@@ -3,14 +3,16 @@ import "./MedicineDisplay.css";
 import { StoreContext } from "../../context/StoreContext";
 import MedicineItem from "../MedicineItem/MedicineItem";
 
-const MedicineDisplay = ({ category, search }) => {
+const MedicineDisplay = ({ category, search, limit }) => {
   const { medicine_list, medicineLoading } = useContext(StoreContext);
 
   const filtered = medicine_list.filter(
     (item) =>
-      (category === "All" || category === item.category) &&
+      (!category || category === "All" || category === item.category) &&
       item.name.toLowerCase().includes((search || "").toLowerCase())
   );
+
+  const displayed = limit ? filtered.slice(0, limit) : filtered;
 
   if (medicineLoading) {
     return (
@@ -45,9 +47,8 @@ const MedicineDisplay = ({ category, search }) => {
 
   return (
     <div className="medicin-display" id="medicin-display">
-      <h2>Trusted Medicines for You</h2>
       <div className="medicin-display-list">
-        {filtered.map((item) => (
+        {displayed.map((item) => (
           <MedicineItem
             key={item._id}
             id={item._id}

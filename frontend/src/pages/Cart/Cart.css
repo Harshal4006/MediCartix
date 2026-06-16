@@ -44,12 +44,13 @@
     border-radius: 16px;
     border: 1px solid #e6f4ea;
     box-shadow: 0 8px 22px rgba(16, 185, 129, 0.08);
-    transition: 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .cart-items-item:hover {
     transform: translateY(-4px);
     box-shadow: 0 14px 28px rgba(22, 163, 74, 0.18);
+    border-color: #bbf7d0;
 }
 
 .product-info {
@@ -98,11 +99,16 @@
     font-size: 18px;
     border-radius: 8px;
     cursor: pointer;
-    transition: 0.2s;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .qty-control button:hover {
     background: #15803d;
+    transform: scale(1.1);
+}
+
+.qty-control button:active {
+    transform: scale(0.9);
 }
 
 .qty-control span {

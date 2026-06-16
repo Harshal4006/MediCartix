@@ -19,12 +19,12 @@ const loadRazorpayScript = () => {
 };
 
 const Payment = () => {
-  const { api, token } = useContext(StoreContext);
+  const { api, token, authChecked } = useContext(StoreContext);
   const { orderId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
 
-  const amount = location.state?.amount || 0;
+  const [amount, setAmount] = useState(location.state?.amount || 0);
   const [processing, setProcessing] = useState(false);
   const [paymentMode, setPaymentMode] = useState(null);
   const [sdkLoaded, setSdkLoaded] = useState(false);
@@ -33,7 +33,7 @@ const Payment = () => {
     loadRazorpayScript().then((loaded) => setSdkLoaded(loaded));
   }, []);
 
-  if (!token) {
+  if (authChecked && !token) {
     navigate("/");
     return null;
   }
@@ -78,6 +78,8 @@ const Payment = () => {
       }
 
       const { id: razorpayOrderId, amount: razorpayAmount, key } = orderRes.data.data;
+
+      setAmount(razorpayAmount / 100);
 
       const options = {
         key,

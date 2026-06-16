@@ -1,203 +1,171 @@
 import orderModel from "../models/orderModel.js";
 import userModel from "../models/userModel.js";
-import { logger } from "../config/logger.js";
+import cartModel from "../models/cartModel.js";
+import medicineModel from "../models/MedicineModel.js";
+import asyncHandler from "../utils/asyncHandler.js";
+import AppError from "../utils/AppError.js";
+import { parsePagination, paginationMeta } from "../utils/paginate.js";
 
-const placeOrder = async (req, res) => {
-  try {
-    const { userId, items, amount, address, paymentMethod } = req.body;
+const DELIVERY_FEE = 40;
+const FREE_DELIVERY_THRESHOLD = 299;
 
-    if (!userId || !Array.isArray(items) || items.length === 0 || !address) {
-      return res.status(400).json({ success: false, message: "Invalid order data" });
-    }
+const VALID_METHODS = ["COD", "Razorpay", "Stripe"];
+const VALID_STATUSES = ["Medicine Processing", "Out for delivery", "Delivered", "Cancelled"];
+const VALID_STATUSES_FILTER = [...VALID_STATUSES, "Payment Failed"];
 
-    const parsedAmount = Number(amount);
-    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0 || parsedAmount > 1000000) {
-      return res.status(400).json({ success: false, message: "Invalid amount" });
-    }
+const placeOrder = asyncHandler(async (req, res) => {
+  const { userId, items, address, paymentMethod } = req.body;
 
-    const validMethods = ["COD", "Razorpay", "Stripe"];
-    const method = paymentMethod || "COD";
-    if (!validMethods.includes(method)) {
-      return res.status(400).json({ success: false, message: "Invalid payment method" });
-    }
-
-    const user = await userModel.findById(userId).select("_id cartData");
-    if (!user) {
-      return res.status(404).json({ success: false, message: "User Not Found" });
-    }
-
-    const newOrder = new orderModel({
-      userId,
-      items: items.map((item) => ({
-        medicineId: item._id || item.medicineId,
-        name: item.name,
-        quantity: item.quantity || 1,
-        price: item.price
-      })),
-      amount: parsedAmount,
-      address,
-      paymentMethod: method,
-      payment: false
-    });
-
-    await newOrder.save();
-
-    await userModel.findByIdAndUpdate(userId, { cartData: {} });
-
-    res.status(201).json({
-      success: true,
-      orderId: newOrder._id,
-      message: "Order Created"
-    });
-  } catch (error) {
-    logger.error("Place order error:", error);
-    res.status(500).json({ success: false, message: "Error creating order" });
+  if (!userId || !Array.isArray(items) || items.length === 0 || !address) {
+    throw AppError.badRequest("Invalid order data");
   }
-};
 
-const verifyOrder = async (req, res) => {
-  try {
-    const { orderId, success, paymentId } = req.body;
+  const method = paymentMethod || "COD";
+  if (!VALID_METHODS.includes(method)) throw AppError.badRequest("Invalid payment method");
 
-    if (!orderId) {
-      return res.status(400).json({ success: false, message: "Order ID is required" });
-    }
+  const user = await userModel.findById(userId).select("_id");
+  if (!user) throw AppError.notFound("User");
 
-    const order = await orderModel.findById(orderId).select("userId payment amount");
-    if (!order) {
-      return res.status(404).json({ success: false, message: "Order Not Found" });
-    }
+  const itemIds = items.map((item) => item._id || item.medicineId).filter(Boolean);
+  if (itemIds.length !== items.length) throw AppError.badRequest("Each item must have a valid ID");
 
-    if (String(order.userId) !== String(req.body.userId)) {
-      return res.status(403).json({ success: false, message: "Forbidden" });
-    }
+  const medicines = await medicineModel.find({ _id: { $in: itemIds } }).lean();
+  if (medicines.length !== items.length) throw AppError.badRequest("One or more medicines not found");
 
-    if (success) {
-      const updateData = { payment: true };
-      if (paymentId) {
-        updateData.paymentId = paymentId;
-      }
+  const medicineMap = Object.fromEntries(medicines.map((m) => [String(m._id), m]));
 
-      await orderModel.findByIdAndUpdate(orderId, updateData);
+  let subtotal = 0;
+  const orderItems = items.map((item) => {
+    const id = String(item._id || item.medicineId);
+    const medicine = medicineMap[id];
+    if (!medicine) throw AppError.badRequest(`Medicine ${id} not found`);
 
-      return res.json({
-        success: true,
-        message: "Payment Successful"
-      });
-    }
+    const quantity = Math.max(1, Number(item.quantity) || 1);
+    const price = medicine.price;
+    subtotal += price * quantity;
 
-    await orderModel.findByIdAndUpdate(orderId, {
-      payment: false,
-      status: "Payment Failed"
-    });
+    return {
+      medicineId: id,
+      name: medicine.name,
+      quantity,
+      price,
+    };
+  });
 
-    res.json({
-      success: false,
-      message: "Payment Failed"
-    });
-  } catch (error) {
-    logger.error("Verify order error:", error);
-    res.status(500).json({ success: false, message: "Error verifying payment" });
+  const deliveryFee = subtotal >= FREE_DELIVERY_THRESHOLD ? 0 : DELIVERY_FEE;
+  const total = subtotal + deliveryFee;
+
+  const now = new Date();
+  const newOrder = new orderModel({
+    userId,
+    items: orderItems,
+    amount: total,
+    subtotal,
+    deliveryFee,
+    address,
+    paymentMethod: method,
+    payment: false,
+    statusHistory: [{ status: "Order Placed", timestamp: now }, { status: "Medicine Processing", timestamp: now }]
+  });
+
+  await newOrder.save();
+  await cartModel.findOneAndDelete({ userId });
+
+  res.status(201).json({
+    success: true,
+    orderId: newOrder._id,
+    amount: total,
+    message: "Order Created"
+  });
+});
+
+const verifyOrder = asyncHandler(async (req, res) => {
+  const { orderId, success } = req.body;
+
+  if (!orderId) throw AppError.missingField("Order ID");
+
+  const order = await orderModel.findById(orderId).select("userId payment paymentMethod");
+  if (!order) throw AppError.notFound("Order");
+
+  if (String(order.userId) !== String(req.userId || req.body?.userId)) throw AppError.forbidden();
+
+  if (order.paymentMethod !== "COD") throw AppError.badRequest("Use /api/payment/verify for online payments");
+
+  if (order.payment) throw AppError.badRequest("Order already verified");
+
+  if (success) {
+    await orderModel.findByIdAndUpdate(orderId, { payment: true });
+
+    return res.json({ success: true, message: "Order confirmed" });
   }
-};
 
-const userOrders = async (req, res) => {
-  try {
-    const userId = req.body.userId;
+  await orderModel.findByIdAndUpdate(orderId, {
+    payment: false,
+    status: "Payment Failed",
+    $push: { statusHistory: { status: "Payment Failed", timestamp: new Date() } }
+  });
+  res.json({ success: false, message: "Order cancelled" });
+});
 
-    const page = Math.max(1, parseInt(req.query.page) || 1);
-    const limit = Math.min(20, Math.max(1, parseInt(req.query.limit) || 10));
-    const skip = (page - 1) * limit;
+const userOrders = asyncHandler(async (req, res) => {
+  const userId = req.userId || req.body?.userId;
+  const { page, limit, skip } = parsePagination(req.query, { limit: 10, maxLimit: 20 });
 
-    const [orders, total] = await Promise.all([
-      orderModel.find({ userId }).sort({ date: -1 }).skip(skip).limit(limit),
-      orderModel.countDocuments({ userId })
-    ]);
+  const [orders, total] = await Promise.all([
+    orderModel.find({ userId }).sort({ date: -1 }).skip(skip).limit(limit),
+    orderModel.countDocuments({ userId })
+  ]);
 
-    res.json({
-      success: true,
-      data: orders,
-      pagination: {
-        page,
-        limit,
-        total,
-        pages: Math.ceil(total / limit),
-        hasMore: skip + orders.length < total
-      }
-    });
-  } catch (error) {
-    logger.error("User orders error:", error);
-    res.status(500).json({ success: false, message: "Error fetching orders" });
+  res.json({
+    success: true,
+    data: orders,
+    pagination: paginationMeta(page, limit, skip, total, orders.length)
+  });
+});
+
+const listOrders = asyncHandler(async (req, res) => {
+  const { page, limit, skip } = parsePagination(req.query);
+  const status = req.query.status;
+
+  const filter = {};
+  if (status && VALID_STATUSES_FILTER.includes(status)) {
+    filter.status = status;
   }
-};
 
-const listOrders = async (req, res) => {
-  try {
-    const page = Math.max(1, parseInt(req.query.page) || 1);
-    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 20));
-    const skip = (page - 1) * limit;
-    const status = req.query.status;
+  const [orders, total] = await Promise.all([
+    orderModel.find(filter).sort({ date: -1 }).skip(skip).limit(limit).lean(),
+    orderModel.countDocuments(filter)
+  ]);
 
-    const filter = {};
-    if (status && ["Medicine Processing", "Out for delivery", "Delivered", "Cancelled", "Payment Failed"].includes(status)) {
-      filter.status = status;
-    }
+  const userIds = [...new Set(orders.map((o) => o.userId))];
+  const users = await userModel.find({ _id: { $in: userIds } }).select("name email").lean();
+  const userMap = Object.fromEntries(users.map((u) => [String(u._id), u]));
 
-    const [orders, total] = await Promise.all([
-      orderModel.find(filter).sort({ date: -1 }).skip(skip).limit(limit).lean(),
-      orderModel.countDocuments(filter)
-    ]);
+  const enrichedOrders = orders.map((order) => ({
+    ...order,
+    user: userMap[String(order.userId)] || null
+  }));
 
-    const userIds = [...new Set(orders.map((o) => o.userId))];
-    const users = await userModel.find({ _id: { $in: userIds } }).select("name email").lean();
-    const userMap = Object.fromEntries(users.map((u) => [String(u._id), u]));
+  res.json({
+    success: true,
+    data: enrichedOrders,
+    pagination: paginationMeta(page, limit, skip, total, orders.length)
+  });
+});
 
-    const enrichedOrders = orders.map((order) => ({
-      ...order,
-      user: userMap[String(order.userId)] || null
-    }));
+const updateStatus = asyncHandler(async (req, res) => {
+  const { orderId, status } = req.body;
 
-    res.json({
-      success: true,
-      data: enrichedOrders,
-      pagination: {
-        page,
-        limit,
-        total,
-        pages: Math.ceil(total / limit),
-        hasMore: skip + orders.length < total
-      }
-    });
-  } catch (error) {
-    logger.error("List orders error:", error);
-    res.status(500).json({ success: false, message: "Error fetching orders" });
-  }
-};
+  if (!orderId || !status) throw AppError.badRequest("Order ID and status are required");
+  if (!VALID_STATUSES.includes(status)) throw AppError.badRequest("Invalid status");
 
-const updateStatus = async (req, res) => {
-  try {
-    const { orderId, status } = req.body;
+  const order = await orderModel.findByIdAndUpdate(orderId, {
+    status,
+    $push: { statusHistory: { status, timestamp: new Date() } }
+  }, { new: true });
+  if (!order) throw AppError.notFound("Order");
 
-    if (!orderId || !status) {
-      return res.status(400).json({ success: false, message: "Order ID and status are required" });
-    }
-
-    const validStatuses = ["Medicine Processing", "Out for delivery", "Delivered", "Cancelled"];
-    if (!validStatuses.includes(status)) {
-      return res.status(400).json({ success: false, message: "Invalid status" });
-    }
-
-    const order = await orderModel.findByIdAndUpdate(orderId, { status }, { new: true });
-
-    if (!order) {
-      return res.status(404).json({ success: false, message: "Order not found" });
-    }
-
-    res.json({ success: true, message: "Status Updated", data: { status: order.status } });
-  } catch (error) {
-    logger.error("Update status error:", error);
-    res.status(500).json({ success: false, message: "Error updating status" });
-  }
-};
+  res.json({ success: true, message: "Status Updated", data: { status: order.status } });
+});
 
 export { placeOrder, verifyOrder, userOrders, listOrders, updateStatus };

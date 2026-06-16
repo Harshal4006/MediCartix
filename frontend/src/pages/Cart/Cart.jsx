@@ -1,4 +1,4 @@
-import React, { useContext, useState, useEffect } from "react";
+import React, { useContext, useState } from "react";
 import { StoreContext } from "../../context/StoreContext";
 import "./Cart.css";
 import { Link } from "react-router-dom";
@@ -18,13 +18,8 @@ const Cart = () => {
   const [coupon, setCoupon] = useState("");
   const [discount, setDiscount] = useState(0);
   const [appliedCoupon, setAppliedCoupon] = useState("");
-  const subtotal = getTotalCartAmount();
 
-  useEffect(() => {
-    setDiscount(0);
-    setAppliedCoupon("");
-    setCoupon("");
-  }, [cartItems]);
+  const subtotal = getTotalCartAmount();
 
   const applyCoupon = () => {
     if (appliedCoupon) {

@@ -26,6 +26,36 @@ const medicineSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+
+    form: {
+      type: String,
+      default: "Tablet",
+    },
+
+    packSize: {
+      type: String,
+      default: "10 tablets",
+    },
+
+    manufacturer: {
+      type: String,
+      default: "MediCartix Pharmaceuticals Ltd.",
+    },
+
+    countryOfOrigin: {
+      type: String,
+      default: "India",
+    },
+
+    prescriptionRequired: {
+      type: Boolean,
+      default: false,
+    },
+
+    expiryMonths: {
+      type: Number,
+      default: 36,
+    },
   },
   { timestamps: true }
 );

@@ -1,44 +1,44 @@
+import AppError from "../utils/AppError.js";
 import { logger } from "../config/logger.js";
 
 export const notFound = (req, res, next) => {
-  const error = new Error(`Not Found - ${req.originalUrl}`);
-  error.status = 404;
-  next(error);
+  next(new AppError(`Not Found - ${req.originalUrl}`, { statusCode: 404, logLabel: "Route" }));
 };
 
 export const errorHandler = (err, req, res, next) => {
-  const status = err.status || 500;
-  const message = err.message || "Server Error";
-
-  logger.error({
-    message,
-    status,
-    url: req.originalUrl,
-    method: req.method,
-    stack: process.env.NODE_ENV === "development" ? err.stack : undefined
-  });
+  let status = err.statusCode || err.status || 500;
+  let message = err.message || "Server Error";
+  let logLabel = err.logLabel || "Error";
 
   if (err.name === "ValidationError") {
+    status = 400;
+    message = "Validation Error";
+    logLabel = "Mongoose validation";
     return res.status(400).json({
       success: false,
-      message: "Validation Error",
+      message,
       errors: Object.values(err.errors || {}).map((e) => e.message)
     });
   }
 
   if (err.name === "CastError") {
-    return res.status(400).json({
-      success: false,
-      message: "Invalid ID format"
-    });
+    status = 400;
+    message = "Invalid ID format";
+    logLabel = "Cast error";
   }
 
   if (err.code === 11000) {
-    return res.status(409).json({
-      success: false,
-      message: "Duplicate field value"
-    });
+    status = 409;
+    message = "Duplicate field value";
+    logLabel = "Duplicate key";
   }
+
+  logger.error(`${logLabel}: ${err.message}`, {
+    status,
+    url: req.originalUrl,
+    method: req.method,
+    stack: process.env.NODE_ENV === "development" ? err.stack : undefined
+  });
 
   res.status(status).json({
     success: false,

@@ -1,84 +1,60 @@
-import userModel from "../models/userModel.js";
-import { logger } from "../config/logger.js";
+import cartModel from "../models/cartModel.js";
+import asyncHandler from "../utils/asyncHandler.js";
+import AppError from "../utils/AppError.js";
 
-const addToCart = async (req, res) => {
-  try {
-    const { userId, itemId } = req.body;
+const addToCart = asyncHandler(async (req, res) => {
+  const { userId, itemId } = req.body;
+  if (!itemId) throw AppError.missingField("Item ID");
 
-    if (!itemId) {
-      return res.status(400).json({ success: false, message: "Item ID is required" });
-    }
+  const incResult = await cartModel.findOneAndUpdate(
+    { userId, "items.medicineId": itemId },
+    { $inc: { "items.$.quantity": 1 } },
+    { new: true }
+  );
 
-    const userData = await userModel.findById(userId).select("cartData");
-    if (!userData) {
-      return res.status(404).json({ success: false, message: "User Not Found" });
-    }
-
-    let cartData = userData.cartData || {};
-
-    if (!cartData[itemId]) {
-      cartData[itemId] = 1;
-    } else {
-      cartData[itemId] += 1;
-    }
-
-    await userModel.findByIdAndUpdate(userId, { cartData });
-
-    res.json({ success: true, message: "Added To Cart" });
-  } catch (error) {
-    logger.error("Add to cart error:", error);
-    res.status(500).json({ success: false, message: "Error adding to cart" });
+  if (!incResult) {
+    await cartModel.findOneAndUpdate(
+      { userId },
+      { $push: { items: { medicineId: itemId, quantity: 1 } } },
+      { upsert: true }
+    );
   }
-};
 
-const removeFromCart = async (req, res) => {
-  try {
-    const { userId, itemId } = req.body;
+  res.json({ success: true, message: "Added To Cart" });
+});
 
-    if (!itemId) {
-      return res.status(400).json({ success: false, message: "Item ID is required" });
-    }
+const removeFromCart = asyncHandler(async (req, res) => {
+  const { userId, itemId } = req.body;
+  if (!itemId) throw AppError.missingField("Item ID");
 
-    const userData = await userModel.findById(userId).select("cartData");
-    if (!userData) {
-      return res.status(404).json({ success: false, message: "User Not Found" });
-    }
+  const decResult = await cartModel.findOneAndUpdate(
+    { userId, "items.medicineId": itemId, "items.quantity": { $gt: 1 } },
+    { $inc: { "items.$.quantity": -1 } },
+    { new: true }
+  );
 
-    let cartData = userData.cartData || {};
-
-    if (cartData[itemId] > 0) {
-      cartData[itemId] -= 1;
-      if (cartData[itemId] === 0) {
-        delete cartData[itemId];
-      }
-    }
-
-    await userModel.findByIdAndUpdate(userId, { cartData });
-
-    res.json({ success: true, message: "Removed From Cart" });
-  } catch (error) {
-    logger.error("Remove from cart error:", error);
-    res.status(500).json({ success: false, message: "Error removing from cart" });
+  if (!decResult) {
+    await cartModel.findOneAndUpdate(
+      { userId },
+      { $pull: { items: { medicineId: itemId } } }
+    );
   }
-};
 
-const getCart = async (req, res) => {
-  try {
-    const { userId } = req.body;
+  res.json({ success: true, message: "Removed From Cart" });
+});
 
-    const userData = await userModel.findById(userId).select("cartData");
-    if (!userData) {
-      return res.status(404).json({ success: false, message: "User Not Found" });
+const getCart = asyncHandler(async (req, res) => {
+  const { userId } = req.body;
+  const cart = await cartModel.findOne({ userId });
+
+  const cartData = {};
+  if (cart) {
+    for (const item of cart.items) {
+      cartData[item.medicineId] = item.quantity;
     }
-
-    res.json({
-      success: true,
-      cartData: userData.cartData || {}
-    });
-  } catch (error) {
-    logger.error("Get cart error:", error);
-    res.status(500).json({ success: false, message: "Error fetching cart" });
   }
-};
+
+  res.json({ success: true, cartData });
+});
 
 export { addToCart, removeFromCart, getCart };

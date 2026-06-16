@@ -1,15 +1,22 @@
 import jwt from "jsonwebtoken";
 import { logger } from "../config/logger.js";
+import { TOKEN_COOKIE } from "../config/cookie.js";
 
 const extractToken = (req) => {
+  if (req.cookies && req.cookies[TOKEN_COOKIE]) {
+    return req.cookies[TOKEN_COOKIE];
+  }
+
   const authHeader = req.headers.authorization;
   if (typeof authHeader === "string" && authHeader.startsWith("Bearer ")) {
     return authHeader.slice("Bearer ".length).trim();
   }
+
   const token = req.headers.token;
   if (typeof token === "string" && token.startsWith("Bearer ")) {
     return token.slice("Bearer ".length).trim();
   }
+
   return token || null;
 };
 
@@ -34,6 +41,7 @@ const authMiddleware = async (req, res, next) => {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.userId = decoded.id;
+    req.body = req.body || {};
     req.body.userId = decoded.id;
 
     next();

@@ -35,7 +35,7 @@ const Dashboard = () => {
       })
       .catch(() => setError("Failed to load dashboard"))
       .finally(() => setLoading(false));
-  }, []);
+  }, [url, token]);
 
   if (loading) {
     return (

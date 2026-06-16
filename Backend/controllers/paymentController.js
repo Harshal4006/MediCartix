@@ -2,127 +2,167 @@ import Razorpay from "razorpay";
 import crypto from "crypto";
 import orderModel from "../models/orderModel.js";
 import { logger } from "../config/logger.js";
+import asyncHandler from "../utils/asyncHandler.js";
+import AppError from "../utils/AppError.js";
 
 const getRazorpay = () => {
   const keyId = process.env.RAZORPAY_KEY_ID;
   const keySecret = process.env.RAZORPAY_KEY_SECRET;
-
-  if (!keyId || !keySecret) {
-    throw new Error("Razorpay credentials not configured");
-  }
-
+  if (!keyId || !keySecret) throw new Error("Razorpay credentials not configured");
   return new Razorpay({ key_id: keyId, key_secret: keySecret });
 };
 
-const createOrder = async (req, res) => {
-  try {
-    const { orderId } = req.body;
+const createOrder = asyncHandler(async (req, res) => {
+  const { orderId } = req.body;
+  if (!orderId) throw AppError.missingField("Order ID");
 
-    if (!orderId) {
-      return res.status(400).json({ success: false, message: "Order ID is required" });
-    }
+  const order = await orderModel.findById(orderId).select("amount userId paymentMethod payment status");
+  if (!order) throw AppError.notFound("Order");
+  if (String(order.userId) !== String(req.body.userId)) throw AppError.forbidden();
+  if (order.payment) throw AppError.badRequest("Order already paid");
+  if (order.paymentMethod !== "Razorpay") throw AppError.badRequest("Not a Razorpay order");
 
-    const order = await orderModel.findById(orderId).select("amount userId paymentMethod payment status");
+  if (order.razorpayOrderId) throw AppError.badRequest("Razorpay order already created for this order");
 
-    if (!order) {
-      return res.status(404).json({ success: false, message: "Order not found" });
-    }
+  const razorpay = getRazorpay();
 
-    if (String(order.userId) !== String(req.body.userId)) {
-      return res.status(403).json({ success: false, message: "Forbidden" });
-    }
+  const amountInPaise = Math.round(order.amount * 100);
 
-    if (order.payment) {
-      return res.status(400).json({ success: false, message: "Order already paid" });
-    }
+  const razorpayOrder = await razorpay.orders.create({
+    amount: amountInPaise,
+    currency: "INR",
+    receipt: `receipt_${order._id}`,
+    notes: { orderId: String(order._id), userId: String(order.userId) },
+  });
 
-    if (order.paymentMethod !== "Razorpay") {
-      return res.status(400).json({ success: false, message: "Not a Razorpay order" });
-    }
+  await orderModel.findByIdAndUpdate(order._id, { razorpayOrderId: razorpayOrder.id });
 
-    const razorpay = getRazorpay();
+  res.json({
+    success: true,
+    data: {
+      id: razorpayOrder.id,
+      amount: amountInPaise,
+      currency: razorpayOrder.currency,
+      key: process.env.RAZORPAY_KEY_ID,
+    },
+  });
+});
 
-    const options = {
-      amount: Math.round(order.amount * 100),
-      currency: "INR",
-      receipt: `receipt_${order._id}`,
-      notes: {
-        orderId: String(order._id),
-        userId: String(order.userId),
-      },
-    };
+const verifyPayment = asyncHandler(async (req, res) => {
+  const { orderId, razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
 
-    const razorpayOrder = await razorpay.orders.create(options);
-
-    await orderModel.findByIdAndUpdate(order._id, {
-      paymentId: razorpayOrder.id,
-    });
-
-    res.json({
-      success: true,
-      data: {
-        id: razorpayOrder.id,
-        amount: razorpayOrder.amount,
-        currency: razorpayOrder.currency,
-        key: process.env.RAZORPAY_KEY_ID,
-      },
-    });
-  } catch (error) {
-    logger.error("Create Razorpay order error:", error);
-    res.status(500).json({ success: false, message: "Failed to create payment" });
+  if (!orderId || !razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+    throw AppError.badRequest("Invalid payment verification data");
   }
-};
 
-const verifyPayment = async (req, res) => {
+  const body = `${razorpay_order_id}|${razorpay_payment_id}`;
+  const keySecret = process.env.RAZORPAY_KEY_SECRET;
+  if (!keySecret) throw AppError.badRequest("Payment service misconfigured");
+
+  const expectedSignature = crypto
+    .createHmac("sha256", keySecret)
+    .update(body)
+    .digest("hex");
+
+  if (expectedSignature !== razorpay_signature) {
+    logger.warn(`Payment signature mismatch for order ${orderId}`);
+    throw AppError.badRequest("Payment verification failed");
+  }
+
+  const order = await orderModel.findById(orderId).select(
+    "userId paymentMethod payment amount razorpayOrderId"
+  );
+  if (!order) throw AppError.notFound("Order");
+  if (String(order.userId) !== String(req.body.userId)) throw AppError.forbidden();
+
+  if (order.payment) throw AppError.badRequest("Order already paid");
+
+  const razorpay = getRazorpay();
+
+  const razorpayOrder = await razorpay.orders.fetch(razorpay_order_id);
+
+  const paidAmount = razorpayOrder.amount_paid;
+  const expectedAmount = Math.round(order.amount * 100);
+
+  if (paidAmount !== expectedAmount) {
+    logger.error(`Amount mismatch for order ${orderId}: paid ${paidAmount}, expected ${expectedAmount}`);
+    throw AppError.badRequest("Payment amount does not match order amount");
+  }
+
+  await orderModel.findByIdAndUpdate(orderId, {
+    payment: true,
+    status: "Medicine Processing",
+    paymentId: razorpay_payment_id,
+  });
+
+  res.json({ success: true, message: "Payment verified successfully" });
+});
+
+const handleRazorpayWebhook = async (req, res) => {
   try {
-    const { orderId, razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
-
-    if (!orderId || !razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
-      return res.status(400).json({ success: false, message: "Invalid payment verification data" });
+    const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
+    if (!webhookSecret) {
+      logger.error("RAZORPAY_WEBHOOK_SECRET not configured");
+      return res.status(500).json({ success: false, message: "Webhook misconfigured" });
     }
 
-    const body = `${razorpay_order_id}|${razorpay_payment_id}`;
-    const keySecret = process.env.RAZORPAY_KEY_SECRET;
-
-    if (!keySecret) {
-      logger.error("RAZORPAY_KEY_SECRET not configured");
-      return res.status(500).json({ success: false, message: "Payment service misconfigured" });
+    const signature = req.headers["x-razorpay-signature"];
+    if (!signature) {
+      return res.status(400).json({ success: false, message: "Missing signature" });
     }
 
-    const expectedSignature = crypto
-      .createHmac("sha256", keySecret)
-      .update(body)
+    const bodyStr = typeof req.body === "string" ? req.body : JSON.stringify(req.body);
+    const expectedSig = crypto
+      .createHmac("sha256", webhookSecret)
+      .update(bodyStr)
       .digest("hex");
 
-    if (expectedSignature !== razorpay_signature) {
-      logger.warn(`Payment signature mismatch for order ${orderId}`);
-      return res.status(400).json({ success: false, message: "Payment verification failed" });
+    if (expectedSig !== signature) {
+      logger.warn("Razorpay webhook: invalid signature");
+      return res.status(400).json({ success: false, message: "Invalid signature" });
     }
 
-    const order = await orderModel.findById(orderId).select("userId paymentMethod payment");
+    const payload = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
+    const event = payload.event;
+    const payment = payload.payload?.payment?.entity;
 
-    if (!order) {
-      return res.status(404).json({ success: false, message: "Order not found" });
+    if (event === "payment.captured" && payment) {
+      const orderId = payment.notes?.orderId;
+      if (orderId) {
+        const order = await orderModel.findById(orderId).select("amount payment");
+        if (order && !order.payment) {
+          const paidPaise = payment.amount;
+          const expectedPaise = Math.round(order.amount * 100);
+          if (paidPaise !== expectedPaise) {
+            logger.error(`Webhook amount mismatch for order ${orderId}: paid ${paidPaise}, expected ${expectedPaise}`);
+          } else {
+            await orderModel.findByIdAndUpdate(orderId, {
+              payment: true,
+              status: "Medicine Processing",
+              paymentId: payment.id,
+            });
+            logger.info(`Razorpay webhook: payment captured for order ${orderId}`);
+          }
+        }
+      }
     }
 
-    if (String(order.userId) !== String(req.body.userId)) {
-      return res.status(403).json({ success: false, message: "Forbidden" });
+    if (event === "payment.failed" && payment) {
+      const orderId = payment.notes?.orderId;
+      if (orderId) {
+        await orderModel.findByIdAndUpdate(orderId, {
+          payment: false,
+          status: "Payment Failed",
+        });
+        logger.warn(`Razorpay webhook: payment failed for order ${orderId}`);
+      }
     }
 
-    await orderModel.findByIdAndUpdate(orderId, {
-      payment: true,
-      status: "Medicine Processing",
-      paymentId: razorpay_payment_id,
-    });
-
-    res.json({
-      success: true,
-      message: "Payment verified successfully",
-    });
+    res.json({ status: "ok" });
   } catch (error) {
-    logger.error("Verify payment error:", error);
-    res.status(500).json({ success: false, message: "Payment verification failed" });
+    logger.error("Razorpay webhook error:", error);
+    res.status(500).json({ success: false, message: "Webhook error" });
   }
 };
 
-export { createOrder, verifyPayment };
+export { createOrder, verifyPayment, handleRazorpayWebhook };

@@ -53,6 +53,7 @@ const Prescriptions = () => {
 
   useEffect(() => {
     fetchPrescriptions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter]);
 
   const statusColors = {
@@ -107,10 +108,11 @@ const Prescriptions = () => {
 
               <div className="prescription-actions">
                 <a
-                  href={`${url}/uploads/prescriptions/${p.fileName}`}
+                  href={`${url}/api/prescription/file/${p._id}?token=${encodeURIComponent(token)}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="action-btn view-btn"
+                  onClick={(e) => { e.stopPropagation(); }}
                 >
                   <MdVisibility /> View
                 </a>
